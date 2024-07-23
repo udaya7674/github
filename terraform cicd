@@ -1,1 +1,139 @@
+== ===========================================================================
+Setup of Jenkins for CI-CD
+===========================================================================
+ Create 3 AWS Ubuntu instances and name then as (Jenkinserver,Qaserver,Prodserver)
 
+ Connect to Jenkinserver using Gitbash
+
+ Update the apt repo
+  sudo apt-get update
+
+ Install jdk
+  sudo apt-get install -y (openjdk-8-jdk) or  openjdk-17-jre
+
+ Install git maven 
+  sudo apt-get install -y git maven
+
+ Download jenkins.war
+  wget https://get.jenkins.io/war-stable/2.452.3/jenkins.war
+
+ To  start jenkins
+  java -jar jenkins.war
+
+ Unlock jenkins by entering the admin password
+
+ Click on Install suggest Plugin
+
+ Create a admin user
+=========================================================================================================================================================
+        or
+==========================================================================================================================================================        
+Long Term Support release
+===========================================================================================================================================================
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update
+sudo apt-get install jenkins
+
+click on install suggest plugin
+create a admin user
+==========================================================================================================================================================
+Open the dashboard of Jenkins
+===========================================================================================================================================================
+ Click on New item---->Enter the item name as Development
+ Select pipeline project-->OK
+ Open the dashboard of Jenkins
+ Go to Manage Jenkins
+ Click on Manage Plugins
+ Click on Availabl\e section
+ Search for terraform plugin
+ Install it
+ Go to the dashboard of Jenkin
+================================================================================================================================================================
+To access aws cloud
+===============================================================================================================================================================
+    provider "aws" {
+    access_key = "..."
+    secret_key = "uTZxHX+aPJCPWSp7axB3Lmbl7oBNrlIJDpKLY/Ny"
+    region     = "us-east-2"
+    }
+From above scenario terraform will download aws related plugins on .terraform folder
+================================================================================================================================================================
+To add ec2 instance inside aws cloud
+    resource "aws_instance" "my-ec2" {
+        ami           = "ami-0fc5d935ebf8bc3bc"
+        instance_type = "t2.micro"
+        tags = {
+            Name = "my-instance"
+        }
+    }
+    
+from above resorce section in there ec2 machine launch
+BreakDown of resource section
+
+resource "aws_instance" my-ec2" -->aws_instance is component name my-ec2 it is nameing convention for aws cloud
+ami --> it is id of machine in that perticular region ami-id will be changed perticular region to region
+instance_type -> To launch an instance with type of instance t2.micro comes with 1CPC and 1GB RAM
+tags are used to assign Name to machine
+==================================================================================================================================================================
+
+RUN A CICD PIPELINE FOR TERRAFORM TO INIT,FORMAT,VALIDATE,PLAN AND APPLY.
+====================================================================================================================================================================
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+        choice(name: 'action', choices: ['apply', 'destroy'], description: 'Select the action to perform')
+    }
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = 'us-east-2'
+    }
+
+   
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', url: 'https://github.com/udaya7674/github.git'
+            }
+        }
+        stage('Terraform init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+        stage('Plan') {
+            steps {
+                sh 'terraform plan -out tfplan'
+                sh 'terraform show -no-color tfplan > tfplan.txt'
+            }
+        }
+        stage('Apply / Destroy') {
+            steps {
+                script {
+                    if (params.action == 'apply') {
+                        if (!params.autoApprove) {
+                            def plan = readFile 'tfplan.txt'
+                            input message: "Do you want to apply the plan?",
+                            parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                        }
+
+                        sh 'terraform ${action} -input=false tfplan'
+                    } else if (params.action == 'destroy') {
+                        sh 'terraform ${action} --auto-approve'
+                    } else {
+                        error "Invalid action selected. Please choose either 'apply' or 'destroy'."
+                    }
+                }
+            }
+        }
+
+    }
+}
+========================================================================================================================================================================
