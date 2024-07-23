@@ -16,7 +16,7 @@ $ sudo mv /tmp/eksctl /usr/local/bin
 $ eksctl version 
 ----------------------------
 step5: create eks cluster with command 
-$ eksctl create cluster --name thej-cluster --node-type t2.large --nodes 3 --region ap-southeast-1
+$ eksctl create cluster --name udhu-cluster --node-type t2.large --nodes 3 --region ap-southeast-1
 	-->from above command to create cluster with 3 machines in singapoor region 
 -->it takes minimum 15 minuites to create cluster 
 ----------------------------
@@ -32,15 +32,15 @@ step7: perform ($ kubectl get node ) it will display cluster nodes
 step8: To delete cluster
 ----------
 -->to delete EKS cluster 
-$ eksctl delete cluster thej-cluster 
-$ eksctl delete cluster thejcluster --region ap-southeast-1
+$ eksctl delete cluster udhu-cluster 
+$ eksctl delete cluster udhucluster --region ap-southeast-1
 -->above command delete cluster and it will take few minuites to delete 
 -----------
 $ eksctl delete cluster thej-cluster --region ap-south-1 
 ======================================================================
-$ eksctl create cluster --name=thej-cluster --region=ap-southeast-1 --node-type=<node-instance-type> --nodes=<number-of-nodes>
+$ eksctl create cluster --name=udhu-cluster --region=ap-southeast-1 --node-type=<node-instance-type> --nodes=<number-of-nodes>
 ---------------------------------------------------------------------------------------------------
-$ eksctl create cluster --name=thej-cluster --region=ap-southeast-1 --node-type=t2.large --nodes=3
+$ eksctl create cluster --name=udhu-cluster --region=ap-southeast-1 --node-type=t2.large --nodes=3
 --------------------------------------------------------------------
-$ eksctl delete cluster --name=thej-cluster --region=ap-southeast-1
+$ eksctl delete cluster --name=udhu-cluster --region=ap-southeast-1
 ---------------------------------------------------------------------------------------------------------------------------------  
