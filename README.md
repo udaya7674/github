@@ -44,3 +44,61 @@ $ eksctl create cluster --name=udhu-cluster --region=ap-southeast-1 --node-type=
 --------------------------------------------------------------------
 $ eksctl delete cluster --name=udhu-cluster --region=ap-southeast-1
 ---------------------------------------------------------------------------------------------------------------------------------  
+
+PROMOTHEUS AND GRAFANA
+-------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------
+MINIKUBE
+--------------------------------------------------------------------------------------------------------------------------
+
+installation eks cluster creation after minikube process 
+------------------------------------------------------------------------------------------------------------------------
+______________________________________________________________________________________________________
+
+The Architecture
+In order to complete this project we will utilize Helm, Prometheus and Grafana, Minikube will be used to serve the Kubernetes Cluster.
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+The process begins for Prometheus:
+Fristly we will launch the Minikube Cluster.
+minikube installation 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ 
+$minikube start --vm-driver=<driver>   # Replace <driver> with your hypervisor driver (virtualbox, vmware, etc.)
+$ minikube status
+$ brew install helm
+$ kubectl create namespace monitoring
+$ kubectl create namespace monitoring
+---------------------------------------------------------------------------------------------------------------------------------------------
+Once complete we will go on to add a helm chart:
+-------------------------------------------------------------------------------------------------------------------------------------------
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+$ helm repo update
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+Once completed we will install the required configurations i.e. Prometheus controller, configmap etc. Essentially installing Prometheus on the cluster
+--------------------------------------------------------------------------------------------------------------------------------------------------
+$ helm install prometheus prometheus-community/prometheus --namespace monitoring
+$ kubectl get pods -n monitoring
+$ kubectl get svc -n monitoring
+--------------------------------------------------------------------------------------------------------------------------------------------------
+All of these are created using the cluter ip, but for this proejct we want to expose the prometheus server in order to see what the api looks like and look into queries that can be created on it. To do this we will convert the prometheus-server service from ClusterIP to NodePort service.
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+$ kubectl expose service prometheus-server --namespace monitoring --type=NodePort --target-port=9090 --name=prometheus-server-ext\
+$ minikube ip
+$ http://192.168.105.2:32535
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+Grafana installation
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+$ helm repo add grafana https://grafana.github.io/helm-charts
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+Now in the same monitoring namespace we will install Grafana using helm chart
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+$ helm install grafana grafana/grafana --namespace monitoring
+$ kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+$ kubectl expose service grafana --namespace monitoring --type=NodePort --target-port=3000 --name=grafana-ext
+$ http://192.168.105.2:31173
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
