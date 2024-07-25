@@ -53,31 +53,7 @@ Open the dashboard of Jenkins
  Install it
  Go to the dashboard of Jenkin
 ================================================================================================================================================================
-To access aws cloud
 ===============================================================================================================================================================
-    provider "aws" {
-    access_key = "..."
-    secret_key = "uTZxHX+aPJCPWSp7axB3Lmbl7oBNrlIJDpKLY/Ny"
-    region     = "us-east-2"
-    }
-From above scenario terraform will download aws related plugins on .terraform folder
-================================================================================================================================================================
-To add ec2 instance inside aws cloud
-    resource "aws_instance" "my-ec2" {
-        ami           = "ami-0fc5d935ebf8bc3bc"
-        instance_type = "t2.micro"
-        tags = {
-            Name = "my-instance"
-        }
-    }
-    
-from above resorce section in there ec2 machine launch
-BreakDown of resource section
-
-resource "aws_instance" my-ec2" -->aws_instance is component name my-ec2 it is nameing convention for aws cloud
-ami --> it is id of machine in that perticular region ami-id will be changed perticular region to region
-instance_type -> To launch an instance with type of instance t2.micro comes with 1CPC and 1GB RAM
-tags are used to assign Name to machine
 ==================================================================================================================================================================
 
 RUN A CICD PIPELINE FOR TERRAFORM TO INIT,FORMAT,VALIDATE,PLAN AND APPLY.
@@ -92,7 +68,7 @@ pipeline {
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION    = 'us-east-2'
+        AWS_DEFAULT_REGION    = 'us-east-1'
     }
 
    
@@ -137,3 +113,85 @@ pipeline {
     }
 }
 ========================================================================================================================================================================
+---------------------------------------------------------
+main.tf 
+------------------------------------
+resource "aws_instance" "public_instance" {
+ ami           = var.ami
+ instance_type = var.instance_type
+
+ tags = {
+   Name = var.name_tag,
+ }
+}
+-------------------------------------
+
+output.tf
+-------------------------------------
+output "public_ip" {
+ value       = aws_instance.public_instance.public_ip
+ description = "Public IP Address of EC2 instance"
+}
+
+output "instance_id" {
+ value       = aws_instance.public_instance.id
+ description = "Instance ID"
+}
+-----------------------------------------
+
+provider.tf
+-----------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "aws" {
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+  region     = var.aws_region
+}
+--------------------------------------------
+
+variable.tf
+---------------------------------------
+variable "aws_access_key" {
+  description = "AWS access key"
+  type        = string
+  default     = ""
+}
+
+variable "aws_secret_key" {
+  description = "AWS secret key"
+  type        = string
+  default     = ""
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-south-1"
+}
+
+
+variable "ami" {
+   type        = string
+   description = "Ubuntu AMI ID"
+   default     = "ami-0f5ee92e2d63afc18"
+}
+
+variable "instance_type" {
+   type        = string
+   description = "Instance type"
+   default     = "t2.micro"
+}
+
+variable "name_tag" {
+   type        = string
+   description = "udhu"
+   default     = "My EC2 Instance"
+}
