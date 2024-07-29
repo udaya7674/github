@@ -1,0 +1,138 @@
+variable "vpc_cidr" {
+  default = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidrs" {
+  default = {
+    web = "10.0.1.0/24"
+  }
+}
+
+variable "private_subnet_cidrs" {
+  default = {
+    app1    = "10.0.2.0/24"
+    app2    = "10.0.3.0/24"
+    dbcache = "10.0.4.0/24"
+    db      = "10.0.5.0/24"
+  }
+}
+
+# Create VPC
+resource "aws_vpc" "production_vpc" {
+  cidr_block = var.vpc_cidr
+  tags = {
+    Name = "Production VPC"
+  }
+}
+
+# Create Internet Gateway
+resource "aws_internet_gateway" "production_igw" {
+  vpc_id = aws_vpc.production_vpc.id
+}
+
+# Create Public Subnet
+resource "aws_subnet" "production_public_subnet" {
+  vpc_id            = aws_vpc.production_vpc.id
+  cidr_block        = var.public_subnet_cidrs["web"]
+  availability_zone = "ap-south-1a"
+  tags = {
+    Name = "Production Public Subnet"
+  }
+}
+
+# Create Private Subnets
+resource "aws_subnet" "production_private_subnets" {
+  count             = length(keys(var.private_subnet_cidrs))
+  vpc_id            = aws_vpc.production_vpc.id
+  cidr_block        = values(var.private_subnet_cidrs)[count.index]
+  availability_zone = "ap-south-1a"
+  tags = {
+    Name = format("Production Private Subnet %s", keys(var.private_subnet_cidrs)[count.index])
+  }
+}
+
+# Launch Instances in Subnets
+resource "aws_instance" "production_instances" {
+  count         = length(keys(var.private_subnet_cidrs)) + 1
+  ami           = "ami-0d473344347276854"
+  instance_type = "t2.micro"
+  subnet_id     = count.index == 0 ? aws_subnet.production_public_subnet.id : element(aws_subnet.production_private_subnets.*.id, count.index - 1)
+  tags = {
+    Name = count.index == 0 ? "web-instance" : format("app%s-instance", count.index)
+  }
+}
+
+# Security Groups
+resource "aws_security_group" "production_security_group" {
+  vpc_id = aws_vpc.production_vpc.id
+
+  // Ingress rule for SSH (port 22)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Production Security Group"
+  }
+}
+
+# Network ACLs
+resource "aws_network_acl" "production_network_acl" {
+  vpc_id = aws_vpc.production_vpc.id
+  // Define network ACL rules as needed
+}
+
+#Dev net
+# Create VPC for Development
+resource "aws_vpc" "development_vpc" {
+  cidr_block = "10.1.0.0/16"
+  tags = {
+    Name = "Development VPC"
+  }
+}
+
+# Create Subnets
+resource "aws_subnet" "development_subnets" {
+  count             = 2
+  vpc_id            = aws_vpc.development_vpc.id
+  cidr_block        = count.index == 0 ? "10.1.1.0/24" : "10.1.2.0/24"
+  availability_zone = "ap-south-1a"
+  tags = {
+    Name = count.index == 0 ? "Development Web Subnet" : "Development DB Subnet"
+  }
+}
+
+# Peering Connection to Production VPC
+resource "aws_vpc_peering_connection" "production_to_development_peering" {
+  peer_vpc_id = aws_vpc.production_vpc.id
+  vpc_id      = aws_vpc.development_vpc.id
+}
+
+# Route Tables, Security Groups, Instances, etc. can be configured similarly as done for Production VPC.
+
+output "production_web_instance_id" {
+  value = aws_instance.production_instances[0].id
+}
+
+output "development_web_subnet_id" {
+  value = aws_subnet.development_subnets[0].id
+}
+
+
